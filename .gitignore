@@ -3,10 +3,12 @@
 /lib
 /lib-types
 /server
+/tmp
 
 # Development
 node_modules
 *.local
+package-lock.json
 
 # Cache
 .cache
