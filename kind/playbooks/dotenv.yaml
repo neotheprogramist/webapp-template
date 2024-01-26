@@ -1,0 +1,14 @@
+---
+- name: Setup Environment from .env file
+  hosts: localhost
+
+  tasks:
+    - name: Load .env file
+      shell: cat ../../k8s/patches/dev/.env.local
+      register: dotenv
+
+    - name: Create dictionary from .env
+      set_fact:
+        env_vars: "{{ env_vars | default({}) | combine({item.split('=')[0]: item.split('=')[1]}) }}"
+      loop: "{{ dotenv.stdout_lines }}"
+      when: item | regex_search('^[\\w]+=[\\w]+')

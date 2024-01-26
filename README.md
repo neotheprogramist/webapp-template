@@ -73,3 +73,18 @@ npm run serve
 ```
 
 Then visit [http://localhost:3000/](http://localhost:3000/)
+
+## Kind Cluster
+
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r kind/requirements.txt
+ansible-galaxy collection install -r kind/ansible-requirements.yaml
+
+kind create cluster --config kind/kind.yaml
+ansible-playbook kind/install.yaml
+
+vim k8s/patches/dev/.env
+vim k8s/patches/dev/.env.local
+kubectl apply -k k8s/patches/dev

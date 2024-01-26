@@ -1,3 +1,9 @@
+# Venv
+.venv
+
+# Env
+.env
+
 # Build
 /dist
 /lib

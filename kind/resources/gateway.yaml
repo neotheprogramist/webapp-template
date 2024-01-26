@@ -1,0 +1,90 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: dev-gateway
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: wildcard-http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              dev-gateway-access: "true"
+    - name: localhost-https
+      protocol: HTTPS
+      port: 443
+      hostname: "localhost"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: webapp-template-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              dev-gateway-access: "true"
+    - name: wildcard-localhost-https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.localhost"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: webapp-template-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              dev-gateway-access: "true"
+    - name: ip-https
+      protocol: HTTPS
+      port: 443
+      hostname: 127.0.0.1
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: webapp-template-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              dev-gateway-access: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dev-gateway
+spec:
+  # type: LoadBalancer
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: dev-gateway
+  # loadBalancerIP: 10.4.4.130
+  ports:
+    - name: http-tcp
+      protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+    - name: http-udp
+      protocol: UDP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+    - name: https-tcp
+      protocol: TCP
+      port: 443
+      targetPort: 443
+      nodePort: 30443
+    - name: https-udp
+      protocol: UDP
+      port: 443
+      targetPort: 443
+      nodePort: 30443
