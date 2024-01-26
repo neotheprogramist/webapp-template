@@ -81,25 +81,37 @@ serviceAccount:
 
 service:
   ## Creates a service to expose the NGINX Gateway Fabric pods.
-  create: false
+  create: true
   ## The type of service to create for the NGINX Gateway Fabric.
-  type: LoadBalancer
+  type: NodePort
   ## The externalTrafficPolicy of the service. The value Local preserves the client source IP.
-  externalTrafficPolicy: Local
+  # externalTrafficPolicy: Local
   ## The annotations of the NGINX Gateway Fabric service.
   annotations: {}
 
   ## A list of ports to expose through the NGINX Gateway Fabric service. Update it to match the listener ports from
   ## your Gateway resource. Follows the conventional Kubernetes yaml syntax for service ports.
   ports:
-  - port: 80
-    targetPort: 80
-    protocol: TCP
-    name: http
-  - port: 443
-    targetPort: 443
-    protocol: TCP
-    name: https
+    - name: http-tcp
+      protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+    - name: http-udp
+      protocol: UDP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+    - name: https-tcp
+      protocol: TCP
+      port: 443
+      targetPort: 443
+      nodePort: 30443
+    - name: https-udp
+      protocol: UDP
+      port: 443
+      targetPort: 443
+      nodePort: 30443
 
 metrics:
   ## Enable exposing metrics in the Prometheus format.
