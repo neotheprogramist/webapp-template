@@ -74,17 +74,73 @@ npm run serve
 
 Then visit [http://localhost:3000/](http://localhost:3000/)
 
-## Kind Cluster
+## Kind Cluster Setup
 
-python -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r kind/requirements.txt
-ansible-galaxy collection install -r kind/ansible-requirements.yaml
+This section guides you through the process of setting up a Kind Cluster. Follow the steps below:
 
-kind create cluster --config kind/kind.yaml
-ansible-playbook kind/install.yaml
+1. **Create a Python virtual environment:**
 
-vim k8s/patches/dev/.env
-vim k8s/patches/dev/.env.local
-kubectl apply -k k8s/patches/dev
+   ```bash
+   python -m venv .venv
+   ```
+
+2. **Activate the virtual environment:**
+
+   ```bash
+   source .venv/bin/activate
+   ```
+
+3. **Upgrade pip, the Python package installer:**
+
+   ```bash
+   pip install --upgrade pip
+   ```
+
+4. **Install the required Python packages:**
+
+   These are listed in the `kind/requirements.txt` file.
+
+   ```bash
+   pip install -r kind/requirements.txt
+   ```
+
+5. **Install the required Ansible collections:**
+
+   These are listed in the `kind/ansible-requirements.yaml` file.
+
+   ```bash
+   ansible-galaxy collection install -r kind/ansible-requirements.yaml
+   ```
+
+6. **Create a new Kind cluster:**
+
+   This uses the configuration specified in the `kind/kind.yaml` file.
+
+   ```bash
+   kind create cluster --config kind/kind.yaml
+   ```
+
+7. **Configure your environment variables:**
+
+   Create and edit the `.env` and `.env.local` files in the `k8s/patches/dev` directory as needed.
+
+   ```bash
+   vim k8s/patches/dev/.env
+   vim k8s/patches/dev/.env.local
+   ```
+
+8. **Run the Ansible playbook:**
+
+   This playbook sets up the Kind cluster as specified in the `kind/install.yaml` file.
+
+   ```bash
+   ansible-playbook kind/install.yaml
+   ```
+
+9. **Apply the Kubernetes patches:**
+
+   This applies the patches in the `k8s/patches/dev` directory to your Kubernetes cluster.
+
+   ```bash
+    kubectl apply -k k8s/patches/dev
+   ```
