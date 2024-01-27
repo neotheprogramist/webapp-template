@@ -5,8 +5,6 @@
   tasks:
     - name: Install SurrealDB
       vars:
-        surrealdb_user: "{{ env_vars['SURREALDB_USER'] }}"
-        surrealdb_pass: "{{ env_vars['SURREALDB_PASS'] }}"
         credentials: "{{ {'initial_user': surrealdb_user, 'initial_pass': surrealdb_pass} }}"
         file_values: "{{ lookup('file', '../resources/values/surrealdb.yaml') | from_yaml }}"
         combined_values: "{{ file_values | combine({'surrealdb': credentials}, recursive=True) }}"

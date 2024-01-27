@@ -1,20 +1,20 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: selfsigned-cluster-issuer
+  name: selfsigned-issuer
 spec:
   selfSigned: {}
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: webapp-template-com
+  name: localhost
 spec:
   # Secret names are always required.
-  secretName: webapp-template-com-tls
+  secretName: localhost-tls
 
   # secretTemplate is optional. If set, these annotations and labels will be
-  # copied to the Secret named webapp-template-com-tls. These labels and annotations will
+  # copied to the Secret named localhost-tls. These labels and annotations will
   # be re-reconciled if the Certificate's secretTemplate changes. secretTemplate
   # is also enforced, so relevant label and annotation changes on the Secret by a
   # third party will be overwriten by cert-manager to match the secretTemplate.
@@ -50,7 +50,7 @@ spec:
     - 127.0.0.1
   # Issuer references are always required.
   issuerRef:
-    name: selfsigned-cluster-issuer
+    name: selfsigned-issuer
     # We can reference ClusterIssuers by changing the kind here.
     # The default value is Issuer (i.e. a locally namespaced Issuer)
     kind: Issuer

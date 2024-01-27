@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   name: dev-gateway
 spec:
-  gatewayClassName: nginx
+  gatewayClassName: dev-nginx
   listeners:
     - name: wildcard-http
       protocol: HTTP

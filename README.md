@@ -117,7 +117,7 @@ This section guides you through the process of setting up a Kind Cluster. Follow
    This uses the configuration specified in the `kind/kind.yaml` file.
 
    ```bash
-   kind create cluster --config kind/kind.yaml
+   KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --config kind/kind.yaml
    ```
 
 7. **Configure your environment variables:**

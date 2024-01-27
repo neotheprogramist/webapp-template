@@ -4,7 +4,7 @@ nginxGateway:
   ## gatewayClassName is the name of the GatewayClass that will be created as part of this release. Every NGINX Gateway
   ## Fabric must have a unique corresponding GatewayClass resource. NGINX Gateway Fabric only processes resources that
   ## belong to its class - i.e. have the "gatewayClassName" field resource equal to the class.
-  gatewayClassName: nginx
+  gatewayClassName: production-nginx
   ## The name of the Gateway controller. The controller name must be of the form: DOMAIN/PATH. The controller's domain
   ## is gateway.nginx.org.
   gatewayControllerName: gateway.nginx.org/nginx-gateway-controller
@@ -96,22 +96,22 @@ service:
       protocol: TCP
       port: 80
       targetPort: 80
-      nodePort: 30080
+      nodePort: 31080
     - name: http-udp
       protocol: UDP
       port: 80
       targetPort: 80
-      nodePort: 30080
+      nodePort: 31080
     - name: https-tcp
       protocol: TCP
       port: 443
       targetPort: 443
-      nodePort: 30443
+      nodePort: 31443
     - name: https-udp
       protocol: UDP
       port: 443
       targetPort: 443
-      nodePort: 30443
+      nodePort: 31443
 
 metrics:
   ## Enable exposing metrics in the Prometheus format.
@@ -125,4 +125,3 @@ metrics:
 ## extraVolumes for the NGINX Gateway Fabric pod. Use in conjunction with
 ## nginxGateway.extraVolumeMounts and nginx.extraVolumeMounts to mount additional volumes to the containers.
 extraVolumes: []
-

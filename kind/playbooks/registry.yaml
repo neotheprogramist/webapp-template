@@ -1,0 +1,35 @@
+---
+- name: Setup Container Registry
+  hosts: localhost
+
+  tasks:
+    - name: Install Harbor Helm chart
+      vars:
+        credentials: "{{ {'harborAdminPassword': harbor_admin_pass} }}"
+        file_values: "{{ lookup('file', '../resources/values/registry.yaml') | from_yaml }}"
+        combined_values: "{{ file_values | combine(credentials, recursive=True) }}"
+      kubernetes.core.helm:
+        name: harbor
+        namespace: harbor
+        chart_ref: harbor
+        chart_repo_url: https://helm.goharbor.io
+        atomic: true
+        create_namespace: true
+        wait: true
+        values: "{{ combined_values }}"
+
+    - name: Add label to harbor namespace to allow access to the gateway
+      kubernetes.core.k8s:
+        name: harbor
+        kind: Namespace
+        merge_type:
+          - strategic-merge
+        definition:
+          metadata:
+            labels:
+              dev-gateway-access: "true"
+
+    - name: Expose Harbor registry
+      kubernetes.core.k8s:
+        namespace: harbor
+        src: ../resources/registry.yaml

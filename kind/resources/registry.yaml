@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: harbor-registry
+spec:
+  hostnames:
+    - registry.localhost
+  parentRefs:
+    - kind: Gateway
+      name: dev-gateway
+      namespace: nginx-gateway
+  rules:
+    - matches:
+      backendRefs:
+        - name: harbor-registry
+          port: 5000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: harbor-portal
+spec:
+  hostnames:
+    - portal.registry.localhost
+  parentRefs:
+    - kind: Gateway
+      name: dev-gateway
+      namespace: nginx-gateway
+  rules:
+    - matches:
+      backendRefs:
+        - name: harbor-portal
+          port: 80

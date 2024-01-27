@@ -8,5 +8,8 @@
 - name: Install NGINX Gateway Fabric
   ansible.builtin.import_playbook: playbooks/gateway.yaml
 
+- name: Install Harbor Container Registry
+  ansible.builtin.import_playbook: playbooks/registry.yaml
+
 - name: Install SurrealDB
   ansible.builtin.import_playbook: playbooks/surrealdb.yaml

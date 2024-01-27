@@ -12,3 +12,10 @@
         env_vars: "{{ env_vars | default({}) | combine({item.split('=')[0]: item.split('=')[1]}) }}"
       loop: "{{ dotenv.stdout_lines }}"
       when: item | regex_search('^[\\w]+=[\\w]+')
+
+    - name: Extract envs from env_vars
+      set_fact:
+        surrealdb_user: "{{ env_vars['SURREALDB_USER'] }}"
+        surrealdb_pass: "{{ env_vars['SURREALDB_PASS'] }}"
+        harbor_admin_pass: "{{ env_vars['HARBOR_ADMIN_PASS'] }}"
+        cloudflare_api_token: "{{ env_vars['CLOUDFLARE_API_TOKEN'] }}"
