@@ -6,7 +6,6 @@ spec:
   parentRefs:
     - kind: Gateway
       name: dev-gateway
-      namespace: nginx-gateway
   rules:
     - matches:
       backendRefs:

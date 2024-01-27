@@ -32,6 +32,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: registry
+  namespace: dev-gateway
 spec:
   gatewayClassName: dev-nginx
   listeners:
@@ -39,18 +40,26 @@ spec:
       protocol: HTTPS
       port: 443
       hostname: "registry.localhost"
+      allowedRoutes:
+        namespaces:
+          from: All
       tls:
         certificateRefs:
           - kind: Secret
             name: registry-tls
+            namespace: harbor
     - name: wildcard-localhost-https
       protocol: HTTPS
       port: 443
       hostname: "*.registry.localhost"
+      allowedRoutes:
+        namespaces:
+          from: All
       tls:
         certificateRefs:
           - kind: Secret
             name: registry-tls
+            namespace: harbor
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

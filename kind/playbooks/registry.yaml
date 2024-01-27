@@ -18,17 +18,6 @@
         wait: true
         values: "{{ combined_values }}"
 
-    - name: Add label to harbor namespace to allow access to the gateway
-      kubernetes.core.k8s:
-        name: harbor
-        kind: Namespace
-        merge_type:
-          - strategic-merge
-        definition:
-          metadata:
-            labels:
-              dev-gateway-access: "true"
-
     - name: Expose Harbor registry
       kubernetes.core.k8s:
         namespace: harbor
