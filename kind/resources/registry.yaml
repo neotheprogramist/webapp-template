@@ -1,3 +1,57 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: registry
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: registry
+spec:
+  secretName: registry-tls
+  duration: 2160h
+  renewBefore: 360h
+  subject:
+    organizations:
+      - localhost
+  privateKey:
+    algorithm: ECDSA
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - registry.localhost
+    - "*.registry.localhost"
+  issuerRef:
+    kind: Issuer
+    name: registry
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: registry
+spec:
+  gatewayClassName: dev-nginx
+  listeners:
+    - name: localhost-https
+      protocol: HTTPS
+      port: 443
+      hostname: "registry.localhost"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: registry-tls
+    - name: wildcard-localhost-https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.registry.localhost"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: registry-tls
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -7,8 +61,7 @@ spec:
     - registry.localhost
   parentRefs:
     - kind: Gateway
-      name: dev-gateway
-      namespace: nginx-gateway
+      name: registry
   rules:
     - matches:
       backendRefs:
@@ -24,8 +77,7 @@ spec:
     - portal.registry.localhost
   parentRefs:
     - kind: Gateway
-      name: dev-gateway
-      namespace: nginx-gateway
+      name: registry
   rules:
     - matches:
       backendRefs:

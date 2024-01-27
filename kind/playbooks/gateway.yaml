@@ -27,12 +27,7 @@
         wait: true
         values: "{{ lookup('file', '../resources/values/production-gateway.yaml') | from_yaml }}"
 
-    - name: Create Issuer & Certificate
-      kubernetes.core.k8s:
-        namespace: default
-        src: ../resources/certificate.yaml
-
-    - name: Create & Expose the Gateway
+    - name: Create the Gateway
       kubernetes.core.k8s:
         namespace: default
         src: ../resources/gateway.yaml

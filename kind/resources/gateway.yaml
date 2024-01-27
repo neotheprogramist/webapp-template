@@ -1,3 +1,63 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: localhost
+spec:
+  # Secret names are always required.
+  secretName: localhost-tls
+
+  # secretTemplate is optional. If set, these annotations and labels will be
+  # copied to the Secret named localhost-tls. These labels and annotations will
+  # be re-reconciled if the Certificate's secretTemplate changes. secretTemplate
+  # is also enforced, so relevant label and annotation changes on the Secret by a
+  # third party will be overwriten by cert-manager to match the secretTemplate.
+  # secretTemplate:
+  #   annotations:
+  #     my-secret-annotation-1: "foo"
+  #     my-secret-annotation-2: "bar"
+  #   labels:
+  #     my-secret-label: foo
+
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+      - localhost
+
+  # isCA: false
+  privateKey:
+    # rotationPolicy: Always
+    algorithm: ECDSA
+    # encoding: PKCS1
+    # size: 256
+  usages:
+    - server auth
+    - client auth
+  # At least one of a DNS Name, URI, or IP address is required.
+  dnsNames:
+    - localhost
+    - "*.localhost"
+  # uris:
+  #   - spiffe://cluster.local/ns/sandbox/sa/example
+  ipAddresses:
+    - 127.0.0.1
+  # Issuer references are always required.
+  issuerRef:
+    name: selfsigned-issuer
+    # We can reference ClusterIssuers by changing the kind here.
+    # The default value is Issuer (i.e. a locally namespaced Issuer)
+    kind: Issuer
+    # This is optional since cert-manager will default to this value however
+    # if you are using an external issuer, change this to that issuer group.
+    # group: cert-manager.io
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -21,7 +81,7 @@ spec:
       tls:
         certificateRefs:
           - kind: Secret
-            name: webapp-template-com-tls
+            name: localhost-tls
       allowedRoutes:
         namespaces:
           from: Selector
@@ -35,7 +95,7 @@ spec:
       tls:
         certificateRefs:
           - kind: Secret
-            name: webapp-template-com-tls
+            name: localhost-tls
       allowedRoutes:
         namespaces:
           from: Selector
@@ -49,7 +109,7 @@ spec:
       tls:
         certificateRefs:
           - kind: Secret
-            name: webapp-template-com-tls
+            name: localhost-tls
       allowedRoutes:
         namespaces:
           from: Selector
