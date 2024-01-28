@@ -74,73 +74,94 @@ npm run serve
 
 Then visit [http://localhost:3000/](http://localhost:3000/)
 
-## Kind Cluster Setup
+# Setting Up a Kind Cluster
 
-This section guides you through the process of setting up a Kind Cluster. Follow the steps below:
+This guide provides step-by-step instructions on setting up a Kind (Kubernetes in Docker) cluster for your development environment. Kind allows you to run Kubernetes clusters in Docker containers, which is ideal for local testing and development.
 
-1. **Create a Python virtual environment:**
+## Prerequisites
 
-   ```bash
-   python -m venv .venv
-   ```
+Before you begin, ensure that you have Python and Ansible installed on your machine. These tools are necessary for creating the virtual environment, installing dependencies, and configuring the cluster.
 
-2. **Activate the virtual environment:**
+## Step 1: Create a Python Virtual Environment
 
-   ```bash
-   source .venv/bin/activate
-   ```
+Start by creating an isolated Python environment to manage the project's dependencies:
 
-3. **Upgrade pip, the Python package installer:**
+```bash
+python -m venv .venv
+```
 
-   ```bash
-   pip install --upgrade pip
-   ```
+## Step 2: Activate the Virtual Environment
 
-4. **Install the required Python packages:**
+Activate the virtual environment to use it for the subsequent operations:
 
-   These are listed in the `kind/requirements.txt` file.
+```bash
+source .venv/bin/activate
+```
 
-   ```bash
-   pip install -r kind/requirements.txt
-   ```
+## Step 3: Upgrade pip
 
-5. **Install the required Ansible collections:**
+Ensure that you have the latest version of pip, the Python package manager:
 
-   These are listed in the `kind/ansible-requirements.yaml` file.
+```bash
+pip install --upgrade pip
+```
 
-   ```bash
-   ansible-galaxy collection install -r kind/ansible-requirements.yaml
-   ```
+## Step 4: Install Python Dependencies
 
-6. **Create a new Kind cluster:**
+Install the required Python packages listed in the project's `requirements.txt` file:
 
-   This uses the configuration specified in the `kind/kind.yaml` file.
+```bash
+pip install -r kind/requirements.txt
+```
 
-   ```bash
-   ./create-cluster.sh
-   ```
+## Step 5: Install Ansible Collections
 
-7. **Configure your environment variables:**
+Install the necessary Ansible collections for cluster configuration as specified in the project's YAML file:
 
-   Create and edit the `.env` and `.env.local` files in the `k8s/patches/dev` directory as needed.
+```bash
+ansible-galaxy collection install -r kind/ansible-requirements.yaml
+```
 
-   ```bash
-   vim k8s/patches/dev/.env
-   vim k8s/patches/dev/.env.local
-   ```
+## Step 6: Configure Public Environment Variables
 
-8. **Run the Ansible playbook:**
+Set up the public environment variables by creating and editing a `.env` file in the specified directory. Adjust the variables as needed for your setup:
 
-   This playbook sets up the Kind cluster as specified in the `kind/install.yaml` file.
+- Location: `k8s/patches/dev/.env`
+- Example Content:
+  ```
+  ORIGIN=https://localhost:30443
+  ```
 
-   ```bash
-   ansible-playbook kind/install.yaml
-   ```
+## Step 7: Configure Private Environment Variables
 
-9. **Apply the Kubernetes patches:**
+Similarly, set up the private environment variables by creating and editing a `.env.local` file. These variables should be kept secure and not exposed publicly:
 
-   This applies the patches in the `k8s/patches/dev` directory to your Kubernetes cluster.
+- Location: `k8s/patches/dev/.env.local`
+- Example Content:
+  ```
+  SURREALDB_USER=root
+  SURREALDB_PASS=toor
+  ```
 
-   ```bash
-    kubectl apply -k k8s/patches/dev
-   ```
+## Step 8: Create a New Kind Cluster
+
+Use the provided shell script to create a new Kind cluster with the specified configuration:
+
+```bash
+./create-cluster.sh
+```
+
+## Step 9: Apply Kubernetes Patches
+
+Finally, apply the necessary Kubernetes patches to your cluster to complete the setup:
+
+```bash
+./deploy-to-cluster.sh
+```
+
+## Accessing the Deployed Container
+
+Once the Kubernetes patches have been applied and the Kind cluster setup is complete, you can access the deployed container through your web browser:
+
+- For HTTP access, navigate to: [http://localhost:30080](http://localhost:30080)
+- For HTTPS access, navigate to: [https://localhost:30443](https://localhost:30443)

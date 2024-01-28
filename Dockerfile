@@ -36,12 +36,6 @@ FROM base as final
 # Use production node environment by default.
 ENV NODE_ENV production
 
-# Define ORIGIN as a build argument
-ARG ORIGIN=https://visoft.dev
-
-# Set the ORIGIN environment variable
-ENV ORIGIN $ORIGIN
-
 # Run the application as a non-root user.
 USER node
 

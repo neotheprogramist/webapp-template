@@ -1,94 +1,39 @@
-apiVersion: cert-manager.io/v1
-kind: Issuer
+apiVersion: v1
+kind: Namespace
 metadata:
-  name: registry
-spec:
-  selfSigned: {}
+  name: oci-registry
 ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
+apiVersion: v1
+kind: Pod
 metadata:
-  name: registry
+  name: oci-registry
+  namespace: oci-registry
+  labels:
+    app.kubernetes.io/name: oci-registry
 spec:
-  secretName: registry-tls
-  duration: 2160h
-  renewBefore: 360h
-  subject:
-    organizations:
-      - localhost
-  privateKey:
-    algorithm: ECDSA
-  usages:
-    - server auth
-    - client auth
-  dnsNames:
-    - registry.localhost
-    - "*.registry.localhost"
-  issuerRef:
-    kind: Issuer
-    name: registry
+  containers:
+    - name: oci-registry
+      image: registry:2
+      ports:
+        - containerPort: 5000
 ---
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
+apiVersion: v1
+kind: Service
 metadata:
-  name: registry
-  namespace: dev-gateway
+  name: oci-registry
+  namespace: oci-registry
 spec:
-  gatewayClassName: dev-nginx
-  listeners:
-    - name: localhost-https
-      protocol: HTTPS
-      port: 443
-      hostname: "registry.localhost"
-      allowedRoutes:
-        namespaces:
-          from: All
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: registry-tls
-            namespace: harbor
-    - name: wildcard-localhost-https
-      protocol: HTTPS
-      port: 443
-      hostname: "*.registry.localhost"
-      allowedRoutes:
-        namespaces:
-          from: All
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: registry-tls
-            namespace: harbor
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: harbor-registry
-spec:
-  hostnames:
-    - registry.localhost
-  parentRefs:
-    - kind: Gateway
-      name: registry
-  rules:
-    - matches:
-      backendRefs:
-        - name: harbor-registry
-          port: 5000
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: harbor-portal
-spec:
-  hostnames:
-    - portal.registry.localhost
-  parentRefs:
-    - kind: Gateway
-      name: registry
-  rules:
-    - matches:
-      backendRefs:
-        - name: harbor-portal
-          port: 80
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: oci-registry
+  ports:
+    - name: tcp
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30500
+    - name: udp
+      protocol: UDP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30500

@@ -9,28 +9,13 @@
 
     - name: Install NGINX Gateway Fabric Helm Chart for development
       kubernetes.core.helm:
-        name: dev-gateway
-        namespace: dev-gateway
+        name: nginx-gateway
+        namespace: nginx-gateway
         chart_ref: oci://ghcr.io/nginxinc/charts/nginx-gateway-fabric
         atomic: true
         create_namespace: true
         wait: true
-        values: "{{ lookup('file', '../resources/values/dev-gateway.yaml') | from_yaml }}"
-
-    - name: Install NGINX Gateway Fabric Helm Chart for production
-      kubernetes.core.helm:
-        name: production-gateway
-        namespace: production-gateway
-        chart_ref: oci://ghcr.io/nginxinc/charts/nginx-gateway-fabric
-        atomic: true
-        create_namespace: true
-        wait: true
-        values: "{{ lookup('file', '../resources/values/production-gateway.yaml') | from_yaml }}"
-
-    - name: Create the Gateway
-      kubernetes.core.k8s:
-        namespace: default
-        src: ../resources/gateway.yaml
+        values: "{{ lookup('file', '../resources/values/gateway.yaml') | from_yaml }}"
 
     - name: Add label to default namespace to allow access to the gateway
       kubernetes.core.k8s:
@@ -41,25 +26,9 @@
         definition:
           metadata:
             labels:
-              dev-gateway-access: "true"
+              nginx-gateway-access: "true"
 
-    - name: Create Cloudflare API Token Secret
+    - name: Create the Gateway
       kubernetes.core.k8s:
-        name: cloudflare-api-token
-        namespace: production-gateway
-        definition:
-          kind: Secret
-          type: Opaque
-          data:
-            api-token: "{{ cloudflare_api_token | b64encode }}"
-
-    - name: Add label to production-gateway namespace to allow access to the gateway
-      kubernetes.core.k8s:
-        name: production-gateway
-        kind: Namespace
-        merge_type:
-          - strategic-merge
-        definition:
-          metadata:
-            labels:
-              production-gateway-access: "true"
+        namespace: default
+        src: ../resources/gateway.yaml

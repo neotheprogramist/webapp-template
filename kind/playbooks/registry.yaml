@@ -1,24 +1,8 @@
 ---
-- name: Setup Container Registry
+- name: Setup OCI Distribution
   hosts: localhost
 
   tasks:
-    - name: Install Harbor Helm chart
-      vars:
-        credentials: "{{ {'harborAdminPassword': harbor_admin_pass} }}"
-        file_values: "{{ lookup('file', '../resources/values/registry.yaml') | from_yaml }}"
-        combined_values: "{{ file_values | combine(credentials, recursive=True) }}"
-      kubernetes.core.helm:
-        name: harbor
-        namespace: harbor
-        chart_ref: harbor
-        chart_repo_url: https://helm.goharbor.io
-        atomic: true
-        create_namespace: true
-        wait: true
-        values: "{{ combined_values }}"
-
-    - name: Expose Harbor registry
+    - name: Setup Docker OCI Distribution
       kubernetes.core.k8s:
-        namespace: harbor
         src: ../resources/registry.yaml

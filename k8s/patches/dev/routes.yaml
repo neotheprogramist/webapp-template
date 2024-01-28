@@ -5,7 +5,10 @@ metadata:
 spec:
   parentRefs:
     - kind: Gateway
-      name: dev-gateway
+      name: nginx-gateway
+      namespace: nginx-gateway
+  hostnames:
+    - localhost
   rules:
     - matches:
       backendRefs:
