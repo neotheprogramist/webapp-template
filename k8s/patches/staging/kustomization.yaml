@@ -3,6 +3,16 @@ kind: Kustomization
 
 namespace: staging
 
+resources:
+  - ../../resources
+  - routes.yaml
+
+patches:
+  - path: pull.patch.yaml
+    target:
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/name=webapp-template"
+
 configMapGenerator:
   - name: config
     envs:

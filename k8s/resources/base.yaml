@@ -15,7 +15,6 @@ spec:
     spec:
       containers:
         - name: webapp-template
-          image: localhost:30500/webapp:latest
           envFrom:
             - secretRef:
                 name: secret
