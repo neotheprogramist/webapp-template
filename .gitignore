@@ -1,0 +1,31 @@
+.claude/
+.remember/
+
+.env
+
+target
+
+node_modules/
+.11ty-vite/
+
+# Generated site output.
+server/templates/
+
+/test-results/
+/playwright-report/
+
+.unlighthouse/
+server.log
+
+.vscode/
+.idea/
+
+.DS_Store
+
+mutants.out/
+mutants.out.old/
+reports/
+.stryker-tmp/
+
+# Fold regressions into generators instead of committing opaque seeds.
+*.proptest-regressions

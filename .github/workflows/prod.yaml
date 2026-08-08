@@ -1,0 +1,106 @@
+# TODO: replace the three TODO_* values before enabling this deployment template.
+name: prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Production transition
+        type: choice
+        options: [promote, rollback]
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  PROJECT_SLUG: TODO_PROJECT_SLUG
+  DOMAIN: TODO_DOMAIN
+  PROJECT_RUNNER_LABEL: TODO_PROJECT_RUNNER_LABEL
+
+jobs:
+  configure:
+    runs-on: [self-hosted, ARM64, TODO_PROJECT_RUNNER_LABEL, deploy]
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      project_slug: ${{ steps.values.outputs.project_slug }}
+      domain: ${{ steps.values.outputs.domain }}
+      runner_label: ${{ steps.values.outputs.runner_label }}
+    steps:
+      - id: values
+        name: Refuse unresolved template values
+        run: |
+          set -euo pipefail
+          for value in "$PROJECT_SLUG" "$DOMAIN" "$PROJECT_RUNNER_LABEL"; do
+            if [[ $value == TODO_* ]]; then
+              printf '%s\n' "DeploymentTemplateIncomplete: replace $value" >&2
+              exit 1
+            fi
+          done
+          printf '%s\n' "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "runner_label=$PROJECT_RUNNER_LABEL" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: configure
+    runs-on: [self-hosted, ARM64, "${{ needs.configure.outputs.runner_label }}", deploy]
+    timeout-minutes: 20
+    permissions: {}
+    outputs:
+      version: ${{ steps.artifact.outputs.version }}
+    steps:
+      - id: artifact
+        name: Apply the named transition
+        env:
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          image="localhost/$PROJECT_SLUG/app"
+          case "$OPERATION" in
+            promote)
+              podman --remote image exists "$image:stage" || {
+                printf '%s\n' 'PromoteRefused(NoStageImage)' >&2
+                exit 1
+              }
+              if podman --remote image exists "$image:prod"; then
+                podman --remote tag "$image:prod" "$image:rollback"
+              fi
+              podman --remote tag "$image:stage" "$image:prod"
+              ;;
+            rollback)
+              podman --remote image exists "$image:rollback" || {
+                printf '%s\n' 'RollbackRefused(NoRollbackImage)' >&2
+                exit 1
+              }
+              podman --remote tag "$image:rollback" "$image:prod"
+              ;;
+            *)
+              printf '%s\n' "UnknownProdOperation: $OPERATION" >&2
+              exit 1
+              ;;
+          esac
+
+          version="$(podman --remote image inspect "$image:prod" --format '{{index .Labels "org.opencontainers.image.version"}}')"
+          [[ -n $version ]] || {
+            printf '%s\n' 'VersionUnavailable' >&2
+            exit 1
+          }
+          printf '%s\n' "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Restart production
+        run: systemctl --user restart "$PROJECT_SLUG-prod.service"
+
+  verify:
+    needs: [configure, deploy]
+    permissions: {}
+    uses: ./.github/workflows/verify-deployment.yaml
+    with:
+      project_slug: ${{ needs.configure.outputs.project_slug }}
+      runner_label: ${{ needs.configure.outputs.runner_label }}
+      version: ${{ needs.deploy.outputs.version }}
+      container: ${{ format('{0}-prod', needs.configure.outputs.project_slug) }}
+      network_alias: ${{ format('{0}.invalid', needs.configure.outputs.domain) }}

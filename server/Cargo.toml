@@ -1,0 +1,44 @@
+[package]
+name = "server"
+version.workspace = true
+edition.workspace = true
+# This internal library only shares code between repository binaries and integration tests.
+publish = false
+default-run = "server"
+
+[features]
+self-signed = ["dep:futures-util", "dep:hyper-util", "dep:rcgen", "dep:tokio-rustls"]
+acme = ["dep:futures-util", "dep:hyper-util", "dep:rustls-acme", "dep:tokio-rustls"]
+
+[dependencies]
+axum.workspace = true
+clap.workspace = true
+futures-util = { workspace = true, optional = true }
+regex.workspace = true
+sd-notify.workspace = true
+serde.workspace = true
+shutdown.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "macros", "net", "rt-multi-thread", "time"] }
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+hyper-util = { workspace = true, optional = true }
+rustls-acme = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+rcgen = { workspace = true, optional = true }
+
+[dev-dependencies]
+proptest.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+tower.workspace = true
+http-body-util.workspace = true
+
+[[bin]]
+name = "certgen"
+required-features = ["self-signed"]
+
+[lints]
+workspace = true

@@ -1,0 +1,167 @@
+# Run the AGENTS.md checks ast-grep can state without false positives:
+#   npx --yes -p @ast-grep/cli ast-grep scan -r contract.yaml .
+# Tests are exempt; CSS and Rust forced accesses have dedicated gates.
+id: p2-inline-regex-js
+language: JavaScript
+severity: error
+message: "P2: patterns live in one module-scope constant with a `// PROOF:` note."
+files:
+  - "web/**"
+  - "*.mjs"
+ignores:
+  - "**/node_modules/**"
+  - "server/templates/**"
+  - "tests/**"
+rule:
+  pattern: new RegExp($$$)
+---
+id: p2-inline-regex-rust
+language: Rust
+severity: error
+message: "P2: compile patterns in server/src/patterns.rs, once."
+files:
+  - "server/src/**"
+ignores:
+  - "server/src/patterns.rs"
+rule:
+  any:
+    - pattern: Regex::new($$$)
+    - pattern: regex::Regex::new($$$)
+    - pattern: RegexBuilder::new($$$)
+    - pattern: regex::RegexBuilder::new($$$)
+---
+id: p3-no-feature-detect
+language: JavaScript
+severity: error
+message: "P3: a feature-detect branch is a fallback. Baseline APIs are boundary conditions."
+files:
+  - "web/**"
+  - "*.mjs"
+ignores:
+  - "**/node_modules/**"
+  - "server/templates/**"
+  - "tests/**"
+rule:
+  any:
+    - pattern: if (window.$X) { $$$ }
+    - pattern: if (typeof window.$X !== "undefined") { $$$ }
+    - pattern: if ($X in window) { $$$ }
+---
+id: a1-no-timer-source
+language: JavaScript
+severity: error
+message: "A1: a timer may bound or delay a transition, never be its source."
+files:
+  - "web/**"
+  - "*.mjs"
+ignores:
+  - "**/node_modules/**"
+  - "server/templates/**"
+  - "tests/**"
+rule:
+  any:
+    - pattern: setInterval($$$)
+    - pattern: window.setInterval($$$)
+    - pattern: globalThis.setInterval($$$)
+    - pattern: self.setInterval($$$)
+---
+id: a2-empty-catch
+language: JavaScript
+severity: error
+message: "A2: fold the error into an explicit failed state, or name the drop."
+files:
+  - "web/**"
+  - "*.mjs"
+ignores:
+  - "**/node_modules/**"
+  - "server/templates/**"
+  - "tests/**"
+rule:
+  any:
+    - pattern: try { $$$BODY } catch { }
+    - pattern: try { $$$BODY } catch ($E) { }
+    - pattern: $PROMISE.catch(() => { })
+    # Computed returns require review; matching them here would create false positives.
+    - pattern: try { $$$BODY } catch { return $LITERAL; }
+    - pattern: try { $$$BODY } catch ($E) { return $LITERAL; }
+    - pattern: $PROMISE.catch(() => $LITERAL)
+constraints:
+  LITERAL:
+    any:
+      - kind: number
+      - kind: string
+      - kind: "true"
+      - kind: "false"
+      - kind: "null"
+      - kind: undefined
+      - kind: object
+      - kind: array
+---
+id: a3-no-geometry-read
+language: JavaScript
+severity: error
+message: "A3: the stylesheet owns geometry. Script may write a custom property, never read a size."
+files:
+  - "web/src/assets/js/**"
+rule:
+  any:
+    - pattern: $X.getBoundingClientRect($$$)
+    - pattern: getComputedStyle($$$)
+    - pattern: window.getComputedStyle($$$)
+    - pattern: $X.offsetWidth
+    - pattern: $X.offsetHeight
+    - pattern: $X.offsetTop
+    - pattern: $X.offsetLeft
+    - pattern: $X.offsetParent
+    - pattern: $X.clientWidth
+    - pattern: $X.clientHeight
+    - pattern: $X.clientTop
+    - pattern: $X.clientLeft
+    - pattern: $X.scrollWidth
+    - pattern: $X.scrollHeight
+    - pattern: $X.getClientRects($$$)
+    - pattern: window.innerWidth
+    - pattern: window.innerHeight
+---
+id: a4-no-global-write
+language: JavaScript
+severity: error
+message: "A4: state has one owner inside its island; cross-island traffic is a CustomEvent."
+files:
+  - "web/**"
+  - "*.mjs"
+ignores:
+  - "**/node_modules/**"
+  - "server/templates/**"
+  - "tests/**"
+rule:
+  any:
+    - pattern: globalThis.$X = $$$
+    - pattern: window.$X = $$$
+    - pattern: globalThis[$K] = $$$
+    - pattern: window[$K] = $$$
+    - pattern: globalThis.$X ||= $$$
+    - pattern: window.$X ||= $$$
+---
+# A named discard still consumes the result; only the wildcard form swallows it.
+id: a2-no-discarded-result
+language: Rust
+severity: error
+message: "A2: consume the result — observe it into a value or a log field, never discard it."
+files:
+  - "server/src/**"
+rule:
+  pattern: let _ = $EXPR;
+---
+id: a3-no-detached-tokio-task
+language: Rust
+severity: error
+message: "A3: asynchronous work is owned and explicitly awaited, selected, or joined."
+files:
+  - "**/*.rs"
+rule:
+  any:
+    - pattern: tokio::spawn($$$)
+    - pattern: tokio::task::spawn($$$)
+    - pattern: tokio::task::spawn_local($$$)
+    - pattern: tokio::task::spawn_blocking($$$)

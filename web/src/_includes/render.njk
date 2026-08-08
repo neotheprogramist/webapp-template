@@ -1,0 +1,4 @@
+{% macro renderContent(content) -%}
+{#- PROOF: markdown-it disables raw HTML, so only its repository-authored generated markup reaches here. -#}
+{{ content | safe }}
+{%- endmacro %}

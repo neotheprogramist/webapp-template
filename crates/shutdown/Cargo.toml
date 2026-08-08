@@ -1,0 +1,12 @@
+[package]
+name = "shutdown"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "signal"] }
+
+[lints]
+workspace = true

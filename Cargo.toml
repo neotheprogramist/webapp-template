@@ -1,0 +1,61 @@
+[workspace]
+members = ["crates/shutdown", "server"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+
+[workspace.dependencies]
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio"] }
+clap = { version = "4.6.6", default-features = false, features = [
+  "derive",
+  "env",
+  "error-context",
+  "help",
+  "std",
+  "usage",
+] }
+regex = "1.13.1"
+futures-util = "0.3.33"
+# Avoid linking libsystemd for its Unix-datagram readiness protocol.
+sd-notify = "0.5.0"
+serde = { version = "1.0.229", features = ["derive"] }
+shutdown = { path = "crates/shutdown" }
+thiserror = "2.0.20"
+tower-http = { version = "0.7.0", features = [
+  "fs",
+  "compression-br",
+  "compression-gzip",
+  "trace",
+  "set-header",
+] }
+tokio = "1.53.1"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = [
+  "env-filter",
+  "fmt",
+] }
+
+# Optional self-signed and ACME TLS stacks for the owned accept loop.
+hyper-util = { version = "0.1.20", features = [
+  "server-auto",
+  "server-graceful",
+  "service",
+  "tokio",
+] }
+rustls-acme = "0.15.3"
+tokio-rustls = "0.26.4"
+rcgen = "0.14.8"
+
+proptest = "1.11.0"
+tempfile = "3.27.0"
+serde_json = "1.0.151"
+tower = { version = "0.5.3", features = ["util"] }
+http-body-util = "0.1.4"

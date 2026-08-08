@@ -1,0 +1,22 @@
+---
+permalink: /public/feed.xml
+layout: null
+eleventyExcludeFromCollections: true
+---
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>{{ site.name | escape }}</title>
+    <link>{{ site.url }}/</link>
+    <description>{{ site.description | escape }}</description>
+    <language>{{ site.language }}</language>
+    {%- for item in collections.all %}
+    <item>
+      <title>{{ item.data.title | escape }}</title>
+      <link>{{ site.url }}{{ item.url }}</link>
+      <guid isPermaLink="true">{{ site.url }}{{ item.url }}</guid>
+      <description>{{ item.data.description | escape }}</description>
+    </item>
+    {%- endfor %}
+  </channel>
+</rss>

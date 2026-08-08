@@ -1,0 +1,141 @@
+name: verify deployment
+
+on:
+  workflow_call:
+    inputs:
+      project_slug:
+        required: true
+        type: string
+      runner_label:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      container:
+        required: true
+        type: string
+      network_alias:
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: [self-hosted, ARM64, "${{ inputs.runner_label }}", deploy]
+    # Verification observes an already-ready deployment and performs no build.
+    timeout-minutes: 20
+    env:
+      PROJECT_SLUG: ${{ inputs.project_slug }}
+      VERSION: ${{ inputs.version }}
+      CONTAINER: ${{ inputs.container }}
+      NETWORK_ALIAS: ${{ inputs.network_alias }}
+    steps:
+      - name: Verify deployment
+        run: |
+          set -euo pipefail
+          ROUTER_ENDPOINT="$(podman --remote port platform-router 8443/tcp)"
+          ROUTER_ADDRESS="${ROUTER_ENDPOINT%:*}"
+          ROUTER_PORT="${ROUTER_ENDPOINT##*:}"
+          [[ -n $ROUTER_ADDRESS && $ROUTER_ENDPOINT != *$'\n'* \
+            && $ROUTER_ADDRESS != "$ROUTER_ENDPOINT" \
+            && $ROUTER_ADDRESS != 0.0.0.0 && $ROUTER_ADDRESS != '[::]' \
+            && $ROUTER_PORT == 8443 ]] || {
+            printf '%s\n' "VerifyFailed(RouterEndpoint): $ROUTER_ENDPOINT" >&2
+            exit 1
+          }
+          python3 -c '
+          import ipaddress
+          import sys
+          ipaddress.IPv4Address(sys.argv[1])
+          ' "$ROUTER_ADDRESS" 2>/dev/null || {
+            printf '%s\n' "VerifyFailed(RouterAddress): $ROUTER_ADDRESS" >&2
+            exit 1
+          }
+
+          IMAGE="localhost/$PROJECT_SLUG/app"
+          EXPECTED="$(podman --remote image inspect "$IMAGE:v$VERSION" --format '{{.Id}}')"
+          RUNNING="$(podman --remote container inspect "$CONTAINER" --format '{{.Image}}')"
+          [[ $RUNNING == "$EXPECTED" ]] || {
+            printf '%s\n' "VerifyFailed(Image): $RUNNING != $EXPECTED" >&2
+            exit 1
+          }
+
+          NETWORK="$(podman --remote network inspect platform)"
+          jq -e '
+            length == 1
+            and .[0].name == "platform"
+            and .[0].driver == "bridge"
+            and .[0].dns_enabled == true
+            and .[0].internal == false
+            and .[0].ipv6_enabled == false
+            and (.[0].subnets | type == "array" and length == 1)
+            and (.[0].subnets[0].subnet | type == "string" and length > 0)
+            and (.[0].subnets[0].gateway | type == "string" and length > 0)
+          ' <<<"$NETWORK" >/dev/null || {
+            printf '%s\n' 'VerifyFailed(PlatformNetwork)' >&2
+            exit 1
+          }
+
+          LIVE_GATEWAY="$(podman --remote network inspect platform \
+            --format '{{(index .Subnets 0).Gateway}}')"
+          CONFIGURED_GATEWAY="$(podman --remote exec platform-router \
+            awk '$1 == "resolver" { value = $2; sub(/;$/, "", value); print value; exit }' \
+            /etc/nginx/platform-resolver.conf)"
+          [[ -n $LIVE_GATEWAY && $LIVE_GATEWAY == "$CONFIGURED_GATEWAY" ]] || {
+            printf '%s\n' \
+              "VerifyFailed(RouterResolver): $CONFIGURED_GATEWAY != $LIVE_GATEWAY" >&2
+            exit 1
+          }
+          podman --remote exec platform-router nginx -t
+
+          ROUTER_SEEN=false
+          while IFS= read -r CONTAINER_NAME; do
+            [[ -n $CONTAINER_NAME ]] || continue
+            PORT_BINDINGS="$(podman --remote container inspect "$CONTAINER_NAME" \
+              --format '{{json .HostConfig.PortBindings}}')"
+            if [[ $CONTAINER_NAME == platform-router ]]; then
+              jq -e --arg address "$ROUTER_ADDRESS" '
+                type == "object"
+                and keys == ["8443/tcp"]
+                and (.["8443/tcp"] | type == "array" and length == 1)
+                and .["8443/tcp"][0].HostIp == $address
+                and .["8443/tcp"][0].HostPort == "8443"
+              ' <<<"$PORT_BINDINGS" >/dev/null || {
+                printf '%s\n' 'VerifyFailed(RouterPortMissing)' >&2
+                exit 1
+              }
+              ROUTER_SEEN=true
+            else
+              jq -e '
+                type == "null" or (type == "object" and length == 0)
+              ' <<<"$PORT_BINDINGS" >/dev/null || {
+                printf '%s\n' "VerifyFailed(UnexpectedPortOwner): $CONTAINER_NAME" >&2
+                exit 1
+              }
+            fi
+          done < <(podman --remote ps -a --format '{{.Names}}')
+          [[ $ROUTER_SEEN == true ]] || {
+            printf '%s\n' 'VerifyFailed(RouterMissing)' >&2
+            exit 1
+          }
+
+          while IFS= read -r RUNNER; do
+            NETWORKS="$(podman --remote container inspect "$RUNNER" \
+              --format '{{json .NetworkSettings.Networks}}')"
+            jq -e '
+              type == "null" or (type == "object" and (has("platform") | not))
+            ' <<<"$NETWORKS" >/dev/null || {
+              printf '%s\n' "VerifyFailed(RunnerNetwork): $RUNNER" >&2
+              exit 1
+            }
+          done < <(podman --remote ps -a --format '{{.Names}}' \
+            | grep -E -- '-(ci|deploy)-' || true)
+
+          podman --remote exec platform-router getent ahostsv4 "$NETWORK_ALIAS" >/dev/null
+          if podman --remote exec platform-router \
+            getent ahostsv4 unknown.example.invalid >/dev/null 2>&1; then
+            printf '%s\n' 'VerifyFailed(UnknownAliasResolved)' >&2
+            exit 1
+          fi

@@ -1,0 +1,169 @@
+# TODO: replace TODO_PROJECT_RUNNER_LABEL before enabling this workflow template.
+# Pull requests execute arbitrary code on the self-hosted runner; keep repositories using this
+# topology private and provision the runner independently. The project label prevents jobs from
+# sharing another project's runner and warm caches. Only first-party actions are allowed; mise is
+# already installed in the persistent runner image.
+name: ci
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  gates:
+    runs-on: &ci_runner [self-hosted, ARM64, TODO_PROJECT_RUNNER_LABEL, ci]
+    timeout-minutes: 60 # Policy: provisional ceiling until measured on this runner.
+    steps:
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - &toolchain
+        name: Resolve the pinned toolchain
+        run: |
+          mise trust
+          mise install
+          mise bin-paths >> "$GITHUB_PATH"
+      - run: npm ci
+      # Rust router tests read the gitignored built tree.
+      - run: npm run build
+      - run: cargo fmt --all --check
+      - run: npx --yes oxfmt --check
+      - run: npx --yes oxlint
+      - run: npx -p typescript tsc --project jsconfig.json
+      - run: npx --yes -p @ast-grep/cli ast-grep scan -r contract.yaml .
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      # all-features selects ACME and compiles out the self-signed-only path.
+      - run: cargo clippy --workspace --all-targets --features self-signed -- -D warnings
+      - run: cargo test --workspace
+      - run: cargo test --workspace --features acme
+      - run: cargo test --workspace --features self-signed
+
+  mutation-server:
+    needs: gates
+    runs-on: *ci_runner
+    timeout-minutes: 120 # Policy: one full suite per mutant.
+    steps:
+      - *checkout
+      - *toolchain
+      # cargo-mutants publishes no ARM64 binary; the persistent runner retains this source install.
+      - name: Install cargo-mutants
+        run: command -v cargo-mutants >/dev/null || cargo install cargo-mutants --locked
+      - run: npm ci
+      - run: npm run build
+      # Exclusions are unreachable from cargo test: socket/TLS shells, main, and cfg-disabled ACME.
+      - run: |
+          cargo mutants --features self-signed \
+            --exclude server/src/serve.rs --exclude server/src/bin/certgen.rs \
+            --exclude-re 'replace main -> Result' --exclude-re '(?i)acme'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: mutants-out
+          path: mutants.out/
+
+  mutation-island:
+    needs: gates
+    runs-on: *ci_runner
+    timeout-minutes: 30 # Policy: one focused schema suite per mutant.
+    steps:
+      - *checkout
+      - *toolchain
+      - run: npm ci
+      - run: npx --yes -p @stryker-mutator/core stryker run
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: stryker-report
+          path: reports/
+
+  e2e:
+    needs: gates
+    runs-on: *ci_runner
+    timeout-minutes: 60 # Policy: provisional ceiling until measured on this runner.
+    steps:
+      - *checkout
+      - *toolchain
+      - run: npm ci
+      # Browser system libraries belong to the persistent runner image.
+      - run: npx playwright install chromium
+      - run: npm run build
+      - run: cargo build --release -p server --features self-signed
+      - run: npm test
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results/
+
+  lighthouse:
+    needs: [mutation-server, mutation-island, e2e]
+    runs-on: *ci_runner
+    timeout-minutes: 45 # Policy: provisional ceiling until measured on this runner.
+    # Leave APP_HOST unset: the dual-stack default lets localhost use either address family.
+    env:
+      APP_PORT: "0"
+      RUST_LOG: info
+      APP_BOOT_RETRIES: "30"
+      APP_BOOT_RETRY_SECONDS: "1"
+      LIGHTHOUSE_BUDGET: "100"
+    steps:
+      - *checkout
+      - *toolchain
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run build
+      - run: cargo build --release -p server
+      - name: Audit every route
+        run: |
+          set -euo pipefail
+          export CHROME_PATH="$(node -e "console.log(require('playwright-core').chromium.executablePath())")"
+          test -x "$CHROME_PATH"
+
+          TARGET_DIR="$(cargo metadata --no-deps --format-version 1 | jq -er '.target_directory')"
+          SERVER="$TARGET_DIR/release/server"
+          test -x "$SERVER"
+          "$SERVER" > server.log 2>&1 &
+          SERVER_PID=$!
+          cleanup() {
+            kill "$SERVER_PID" 2>/dev/null || true
+            wait "$SERVER_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          port=""
+          for _ in $(seq 1 "$APP_BOOT_RETRIES"); do
+            port="$(grep -oE 'event="server\.listen".*\baddr=\S*:[0-9]+' server.log \
+                    | grep -oE '[0-9]+$' | head -1 || true)"
+            [ -n "${port:-}" ] && break
+            sleep "$APP_BOOT_RETRY_SECONDS"
+          done
+          if [ -z "${port:-}" ]; then
+            echo "server never logged a bound address"
+            cat server.log
+            exit 1
+          fi
+
+          site="http://localhost:$port"
+          curl --retry "$APP_BOOT_RETRIES" --retry-connrefused \
+            --retry-delay "$APP_BOOT_RETRY_SECONDS" -sf "$site" -o /dev/null
+
+          npx --yes -p @unlighthouse/cli unlighthouse-ci \
+            --site "$site" --disable-dynamic-sampling --budget "$LIGHTHOUSE_BUDGET"
+      # Keep the compact summary and server log, not the per-route screenshots.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: lighthouse-results
+          path: |
+            .unlighthouse/ci-result.json
+            server.log

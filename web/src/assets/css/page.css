@@ -1,0 +1,30 @@
+@layer components {
+  @scope (.page) {
+    :scope {
+      max-width: var(--site-measure);
+      padding-block: var(--site-space-12);
+    }
+
+    h1 {
+      margin-bottom: var(--site-space-6);
+      font-size: var(--site-text-xl);
+    }
+
+    h2 {
+      margin-block: var(--site-space-8) var(--site-space-3);
+    }
+
+    p + p,
+    p + ul,
+    ul + p {
+      margin-top: var(--site-space-4);
+    }
+
+    ul {
+      display: flex;
+      flex-direction: column;
+      gap: var(--site-space-2);
+      padding-inline-start: var(--site-space-6);
+    }
+  }
+}

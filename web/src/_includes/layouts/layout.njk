@@ -1,0 +1,44 @@
+{%- from "render.njk" import renderContent -%}
+<!doctype html>
+<html lang="{{ site.language }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {% set pageUrl = site.url + page.url %}
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ description }}" />
+    <link rel="canonical" href="{{ pageUrl }}" />
+
+    <meta property="og:site_name" content="{{ site.name }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ pageUrl }}" />
+    <meta property="og:locale" content="{{ site.locale }}" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:image" content="{{ site.url }}/favicon.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:alt" content="{{ site.name }} icon" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="{{ title }}" />
+    <meta name="twitter:description" content="{{ description }}" />
+    <meta name="twitter:image" content="{{ site.url }}/favicon.svg" />
+
+    {# PROOF: schema contains only repository-authored build data. #}
+    <script type="application/ld+json">{{ schema | dump | safe }}</script>
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title="{{ site.name }} feed" href="/feed.xml" />
+    <link rel="stylesheet" href="/assets/css/root.css" />
+    {% block head %}{% endblock %}
+    <script type="speculationrules">{{ speculationRules | dump | safe }}</script>
+  </head>
+  <body>
+    <a class="site-skip" href="#main">Skip to content</a>
+    {% include "nav.njk" %}
+    <main id="main" class="site-container">
+      {% block content %}{% endblock %}
+    </main>
+    {% include "footer.njk" %}
+  </body>
+</html>

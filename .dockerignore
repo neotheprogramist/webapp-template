@@ -1,0 +1,48 @@
+# Keep the first block byte-identical to .gitignore:
+#   diff <(sed -n '/^.claude\/$/,/^# END GITIGNORE COPY$/p' .dockerignore | sed '$d') .gitignore
+
+.claude/
+.remember/
+
+.env
+
+target
+
+node_modules/
+.11ty-vite/
+
+# Generated site output.
+server/templates/
+
+/test-results/
+/playwright-report/
+
+.unlighthouse/
+server.log
+
+.vscode/
+.idea/
+
+.DS_Store
+
+mutants.out/
+mutants.out.old/
+reports/
+.stryker-tmp/
+
+# Fold regressions into generators instead of committing opaque seeds.
+*.proptest-regressions
+# END GITIGNORE COPY
+
+.git
+.github/
+.gitignore
+.dockerignore
+Containerfile
+
+AGENTS.md
+README.md
+WEBAPP.md
+
+.env.example
+mise.toml

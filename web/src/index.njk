@@ -1,0 +1,42 @@
+---
+title: Webapp Template
+description: A typed static-first webapp scaffold with Eleventy, Rust, and contract-driven tests.
+heading: Start with a small, observable webapp
+---
+{% extends "layouts/layout.njk" %}
+
+{% block head %}{{ super() }}<link rel="stylesheet" href="/assets/css/home.css" />{% endblock %}
+
+{% block content %}
+<div class="home">
+  <section class="home__hero">
+    <p class="home__eyebrow">Reference scaffold</p>
+    <h1>{{ heading }}</h1>
+    <p>
+      This repository combines build-time pages, a small Rust delivery server, and tests that
+      observe the generated site through its public boundaries.
+    </p>
+    <p>Copy the scaffold, bind one application identity, and add only the boundaries it needs.</p>
+    <a class="home__action" href="/about/">Understand the baseline</a>
+  </section>
+
+  <section class="home__section" aria-labelledby="baseline-heading">
+    <h2 id="baseline-heading">What the baseline proves</h2>
+    <p>The starter stays deliberately small while keeping its important guarantees executable.</p>
+    <ul class="home__grid">
+      <li class="home__card">
+        <h3>Typed content</h3>
+        <p>Front matter is parsed once before Eleventy renders a page.</p>
+      </li>
+      <li class="home__card">
+        <h3>Static-first delivery</h3>
+        <p>Vite bundles static assets and Rust serves the resulting tree verbatim.</p>
+      </li>
+      <li class="home__card">
+        <h3>Observable contracts</h3>
+        <p>Tests derive routes and assets from the build instead of copying product inventories.</p>
+      </li>
+    </ul>
+  </section>
+</div>
+{% endblock %}

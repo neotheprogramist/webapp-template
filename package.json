@@ -1,0 +1,21 @@
+{
+  "name": "webapp-template",
+  "private": true,
+  "workspaces": [
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.6",
+    "@11ty/eleventy-plugin-vite": "^8.0.0",
+    "@playwright/test": "^1.62.1",
+    "@types/html-minifier-terser": "^7.0.2",
+    "@types/node": "^26.2.0",
+    "fast-check": "^4.9.0",
+    "gray-matter": "^4.0.3",
+    "html-minifier-terser": "^7.2.0"
+  }
+}

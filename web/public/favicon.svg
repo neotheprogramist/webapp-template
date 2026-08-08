@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32">
+  <title>Webapp Template</title>
+  <rect x="4" y="4" width="24" height="24" rx="4" fill="#245f9e" />
+  <path d="M10 11h12M10 16h12M10 21h8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+</svg>

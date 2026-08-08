@@ -1,0 +1,175 @@
+@layer reset, components;
+
+@layer reset {
+  :root {
+    --site-hairline: 1px;
+    --site-bg: #f6f7f8;
+    --site-surface: #ffffff;
+    --site-text: #17202a;
+    --site-text-muted: #4c5967;
+    --site-accent: #245f9e;
+    --site-accent-strong: #174879;
+    --site-accent-contrast: #ffffff;
+    --site-border: color-mix(in srgb, var(--site-text) 18%, transparent);
+    --site-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --site-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --site-text-sm: 0.875rem;
+    --site-text-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.25rem);
+    --site-text-xl: clamp(1.5rem, 1.2rem + 1.5vw, 2rem);
+    --site-text-2xl: clamp(2rem, 1.4rem + 3vw, 3.5rem);
+    --site-space-2: 0.5rem;
+    --site-space-3: 0.75rem;
+    --site-space-4: 1rem;
+    --site-space-6: 1.5rem;
+    --site-space-8: 2rem;
+    --site-space-12: 3rem;
+    --site-space-16: 4rem;
+    --site-gutter: clamp(1.25rem, 5vw, 4rem);
+    --site-container: 68rem;
+    --site-measure: 68ch;
+    --site-card-min: 16rem;
+    --site-touch: 2.75rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --site-bg: #14191f;
+      --site-surface: #1d252e;
+      --site-text: #edf2f7;
+      --site-text-muted: #bac5d0;
+      --site-accent: #8fc7ff;
+      --site-accent-strong: #b8dbff;
+      --site-accent-contrast: #102033;
+    }
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+  }
+
+  body {
+    min-height: 100vh;
+    font-family: var(--site-font);
+    line-height: 1.6;
+    color: var(--site-text);
+    background: var(--site-bg);
+    overflow-wrap: break-word;
+  }
+
+  a {
+    color: var(--site-accent-strong);
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.16em;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: calc(var(--site-hairline) * 2) solid var(--site-accent);
+    outline-offset: calc(var(--site-hairline) * 2);
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+@layer components {
+  .site-container {
+    width: min(100%, calc(var(--site-container) + 2 * var(--site-gutter)));
+    margin-inline: auto;
+    padding-inline: var(--site-gutter);
+  }
+
+  @scope (.site-skip) {
+    :scope {
+      position: absolute;
+      inset-inline-start: -100vw;
+      z-index: 2;
+      padding: var(--site-space-3) var(--site-space-4);
+      background: var(--site-accent-strong);
+      color: var(--site-accent-contrast);
+    }
+
+    :scope:focus {
+      inset-inline-start: 0;
+    }
+  }
+
+  @scope (.site-header) {
+    :scope {
+      border-bottom: var(--site-hairline) solid var(--site-border);
+      background: var(--site-surface);
+    }
+  }
+
+  @scope (.site-nav) {
+    :scope {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--site-space-4);
+      padding-block: var(--site-space-3);
+    }
+
+    .site-nav__brand {
+      min-height: var(--site-touch);
+      display: inline-flex;
+      align-items: center;
+      color: var(--site-text);
+      font-family: var(--site-font-mono);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .site-nav__links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--site-space-4);
+      padding: 0;
+      list-style: none;
+    }
+
+    .site-nav__links a {
+      min-height: var(--site-touch);
+      display: inline-flex;
+      align-items: center;
+      color: var(--site-text-muted);
+    }
+
+    .site-nav__links a[aria-current="page"] {
+      color: var(--site-text);
+      font-weight: 700;
+    }
+  }
+
+  @scope (.site-footer) {
+    :scope {
+      margin-block-start: var(--site-space-16);
+      border-top: var(--site-hairline) solid var(--site-border);
+      color: var(--site-text-muted);
+      background: var(--site-surface);
+    }
+
+    .site-footer__inner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--site-space-4);
+      padding-block: var(--site-space-8);
+      font-size: var(--site-text-sm);
+    }
+  }
+}

@@ -1,0 +1,15 @@
+---
+permalink: /public/llms.txt
+layout: null
+eleventyExcludeFromCollections: true
+---
+{#- PROOF: repository-authored values render as text/plain, where HTML escaping would corrupt output. -#}
+# {{ site.name | safe }}
+
+> {{ site.description | safe }}
+
+## Pages
+
+{% for item in collections.all -%}
+- [{{ item.data.title | safe }}]({{ site.url }}{{ item.url }}): {{ item.data.description | safe }}
+{% endfor -%}

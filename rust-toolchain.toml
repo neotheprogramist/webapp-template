@@ -1,0 +1,4 @@
+[toolchain]
+# Keep local, CI, and container builds on the same stable release.
+channel = "1.97.1"
+components = ["clippy", "rust-analyzer", "rustfmt"]

@@ -1,0 +1,17 @@
+@layer components {
+  @scope (.error) {
+    :scope {
+      max-width: var(--site-measure);
+      padding-block: var(--site-space-16);
+    }
+
+    h1 {
+      margin-bottom: var(--site-space-4);
+      font-size: var(--site-text-xl);
+    }
+
+    p + p {
+      margin-top: var(--site-space-4);
+    }
+  }
+}

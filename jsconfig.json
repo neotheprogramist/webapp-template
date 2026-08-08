@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "esnext",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "strict": true,
+    "noEmit": true,
+    "maxNodeModuleJsDepth": 0,
+    // Required because maxNodeModuleJsDepth excludes automatic Node declarations.
+    "types": ["node"]
+  },
+  "include": ["**/*.mjs"],
+  // Generated trees can contain copied JavaScript outside this program.
+  "exclude": ["**/node_modules", "server/templates", "target"]
+}

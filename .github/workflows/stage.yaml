@@ -1,0 +1,150 @@
+# TODO: replace the three TODO_* values before enabling this deployment template.
+name: stage
+
+on:
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  PROJECT_SLUG: TODO_PROJECT_SLUG
+  DOMAIN: TODO_DOMAIN
+  PROJECT_RUNNER_LABEL: TODO_PROJECT_RUNNER_LABEL
+
+jobs:
+  configure:
+    runs-on: [self-hosted, ARM64, TODO_PROJECT_RUNNER_LABEL, deploy]
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      project_slug: ${{ steps.values.outputs.project_slug }}
+      domain: ${{ steps.values.outputs.domain }}
+      runner_label: ${{ steps.values.outputs.runner_label }}
+    steps:
+      - id: values
+        name: Refuse unresolved template values
+        run: |
+          set -euo pipefail
+          for value in "$PROJECT_SLUG" "$DOMAIN" "$PROJECT_RUNNER_LABEL"; do
+            if [[ $value == TODO_* ]]; then
+              printf '%s\n' "DeploymentTemplateIncomplete: replace $value" >&2
+              exit 1
+            fi
+          done
+          printf '%s\n' "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "runner_label=$PROJECT_RUNNER_LABEL" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: configure
+    runs-on: [self-hosted, ARM64, "${{ needs.configure.outputs.runner_label }}", deploy]
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      version: ${{ steps.artifact.outputs.version }}
+    steps:
+      - name: Require current main with successful CI
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ $GITHUB_REF == refs/heads/main ]] || {
+            printf '%s\n' "StageRefused(NotMain): $GITHUB_REF" >&2
+            exit 1
+          }
+
+          umask 077
+          header_file="$(mktemp)"
+          response_file="$(mktemp)"
+          cleanup() { rm -f -- "$header_file" "$response_file"; }
+          trap cleanup EXIT
+          printf 'Authorization: Bearer %s' "$TOKEN" > "$header_file"
+          curl_args=(
+            --fail --silent --show-error --location
+            --header "@$header_file"
+            --header 'Accept: application/vnd.github+json'
+            --header 'X-GitHub-Api-Version: 2026-03-10'
+            --header 'User-Agent: webapp-template-deploy'
+          )
+          base="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
+
+          curl "${curl_args[@]}" "$base/commits/main" > "$response_file"
+          main_sha="$(jq -er '.sha' "$response_file")"
+          [[ $main_sha == "$GITHUB_SHA" ]] || {
+            printf '%s\n' "StageRefused(MainMoved): $GITHUB_SHA != $main_sha" >&2
+            exit 1
+          }
+
+          ci_succeeded=false
+          for event in push workflow_dispatch; do
+            curl "${curl_args[@]}" \
+              "$base/actions/workflows/ci.yaml/runs?head_sha=$GITHUB_SHA&event=$event&status=success&per_page=1" \
+              > "$response_file"
+            if jq -e --arg sha "$GITHUB_SHA" --arg event "$event" '
+              any(.workflow_runs[]?; .head_sha == $sha and .event == $event and .conclusion == "success")
+            ' "$response_file" >/dev/null; then
+              ci_succeeded=true
+              break
+            fi
+          done
+          [[ $ci_succeeded == true ]] || {
+            printf '%s\n' "StageRefused(CiNotSuccessful): $GITHUB_SHA" >&2
+            exit 1
+          }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: artifact
+        name: Read the workspace version
+        run: |
+          version="$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')"
+          printf '%s\n' "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build the immutable image once
+        env:
+          VERSION: ${{ steps.artifact.outputs.version }}
+        run: |
+          set -euo pipefail
+          image="localhost/$PROJECT_SLUG/app"
+          if podman --remote image exists "$image:v$VERSION"; then
+            revision="$(podman --remote image inspect "$image:v$VERSION" --format '{{index .Labels "org.opencontainers.image.revision"}}')"
+            [[ $revision == "$GITHUB_SHA" ]] || {
+              printf '%s\n' "VersionAlreadyBound: v$VERSION belongs to $revision" >&2
+              exit 1
+            }
+          else
+            podman --remote build \
+              --build-arg FEATURES="--features acme" \
+              --label org.opencontainers.image.version="$VERSION" \
+              --label org.opencontainers.image.revision="$GITHUB_SHA" \
+              --label org.opencontainers.image.source="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+              -f Containerfile -t "$image:v$VERSION" .
+          fi
+
+      - name: Move stage and restart one unit
+        env:
+          VERSION: ${{ steps.artifact.outputs.version }}
+        run: |
+          set -euo pipefail
+          image="localhost/$PROJECT_SLUG/app"
+          podman --remote tag "$image:v$VERSION" "$image:stage"
+          systemctl --user restart "$PROJECT_SLUG-stage.service"
+
+  verify:
+    needs: [configure, deploy]
+    permissions: {}
+    uses: ./.github/workflows/verify-deployment.yaml
+    with:
+      project_slug: ${{ needs.configure.outputs.project_slug }}
+      runner_label: ${{ needs.configure.outputs.runner_label }}
+      version: ${{ needs.deploy.outputs.version }}
+      container: ${{ format('{0}-stage', needs.configure.outputs.project_slug) }}
+      network_alias: ${{ format('stage.{0}.invalid', needs.configure.outputs.domain) }}
